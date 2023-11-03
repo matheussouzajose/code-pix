@@ -1,0 +1,41 @@
+version: '3'
+
+services:
+    app:
+        build: .
+        container_name: bank-api-app
+        volumes:
+            - .:/var/www
+            - ./.docker/php/custom.ini:/usr/local/etc/php/conf.d/custom.ini
+        depends_on:
+            - db
+        extra_hosts:
+          - "host.docker.internal:172.17.0.1"
+
+    nginx:
+        build: .docker/nginx
+        container_name: bank-api-nginx
+        restart: always
+        tty: true
+        ports:
+            - "8001:80"
+        volumes:
+            - .:/var/www
+        depends_on:
+            - app
+        extra_hosts:
+          - "host.docker.internal:172.17.0.1"
+
+    db:
+        build: ./.docker/mysql
+        container_name: bank-api-db
+        restart: always
+        tty: true
+        ports:
+            - "33005:3306"
+        volumes:
+            - ./.docker/dbdata/var/lib/mysql
+            - ./.docker/mysql:/docker-entrypoint-initdb.d
+        environment:
+            - MYSQL_DATABASE=bank_api
+            - MYSQL_ROOT_PASSWORD=root

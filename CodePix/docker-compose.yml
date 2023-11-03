@@ -1,0 +1,48 @@
+version: '3'
+
+services:
+    app:
+        build: .
+        container_name: code-pix-app
+        volumes:
+            - .:/var/www
+            - ./.docker/php/custom.ini:/usr/local/etc/php/conf.d/custom.ini
+        depends_on:
+            - db
+
+    nginx:
+        build: .docker/nginx
+        container_name: code-pix-nginx
+        restart: always
+        tty: true
+        ports:
+            - "8000:80"
+        volumes:
+            - .:/var/www
+        depends_on:
+            - app
+
+    db:
+        build: ./.docker/mysql
+        container_name: code-pix-db
+        restart: always
+        tty: true
+        ports:
+            - "33006:3306"
+        volumes:
+            - ./.docker/dbdata:/var/lib/mysql
+            - ./.docker/mysql:/docker-entrypoint-initdb.d
+        environment:
+            - MYSQL_DATABASE=code_pix
+            - MYSQL_ROOT_PASSWORD=root
+
+    consumer:
+        build: .
+        container_name: code-pix-consumer
+        volumes:
+            - .:/var/www
+            - ./.docker/php/custom.ini:/usr/local/etc/php/conf.d/custom.ini
+        depends_on:
+            - db
+        working_dir: /var/www
+        entrypoint: [ 'php', '/var/www/artisan', 'kafka:consumer' ]
